@@ -34,6 +34,41 @@ const setUpRoutes = async (app) => {
     res.send(students);
   });
 
+  // Add Studdents
+  app.post("/students/add", async (req, res) => {
+    const { name, birthdate, email, city } = req.body;
+
+    const bodySchema = Joi.object({
+      email: Joi.string().email().required(),
+      name: Joi.string().required(),
+      birthdate: Joi.string().required(),
+      city: Joi.string().required(),
+    });
+
+    const validation = bodySchema.validate(req.body);
+
+    if (validation.error) {
+      res.statusCode = 400;
+      res.send(validation.error.message);
+      return;
+    }
+
+    try {
+      const newStudent = studentModel({
+        name,
+        email,
+        birthdate,
+        city,
+      });
+
+      await newStudent.save();
+      res.send(newStudent);
+    } catch (error) {
+      res.statusCode = 400;
+      res.send(error.message);
+    }
+  });
+
   // Rigister Teacher
   app.post("/teacher/register", async (req, res) => {
     const { name, email, password } = req.body;
