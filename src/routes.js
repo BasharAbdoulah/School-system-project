@@ -22,7 +22,6 @@ const setUpRoutes = async (app) => {
       if (!teacher) {
         res.statusCode = 401;
         res.send("You have no permissions");
-
         return;
       }
 
@@ -36,6 +35,28 @@ const setUpRoutes = async (app) => {
 
   // Add Studdents
   app.post("/students/add", async (req, res) => {
+    // get token from headers
+    const token = req.headers.authorization;
+
+    if (!token) {
+      // check if there is token let him keep going
+      res.statusCode = 401;
+      res.send("You have no permissions!!");
+      return;
+    }
+
+    const decodedToken = jwt.decode(token); // do decoded for the token and get teacher if he exsit
+    const teacher = await teacherModel.findById(decodedToken.sub);
+
+    if (!teacher) {
+      // check if we have this teacher let him keep going
+      res.statusCode = 401;
+      res.send("You have no permissions");
+      return;
+    }
+
+    jwt.verify(token, teacher.salt);
+
     const { name, birthdate, email, city } = req.body;
 
     const bodySchema = Joi.object({
@@ -114,9 +135,7 @@ const setUpRoutes = async (app) => {
       res.send("Teacher not exist");
     } else {
       if (teacher.password === hashPassword(password, teacher.salt)) {
-        const token = jwt.sign({ sub: teacher._id }, teacher.salt, {
-          expiresIn: 30,
-        });
+        const token = jwt.sign({ sub: teacher._id }, teacher.salt);
         res.send(token);
       } else {
         res.statusCode = 401;
@@ -146,8 +165,30 @@ const setUpRoutes = async (app) => {
     }
   });
 
-  // Delete spisfic stident
-  app.delete("/students/delete/:id", (req, res) => {
+  // Delete spisfic student
+  app.delete("/students/delete/:id", async (req, res) => {
+    // get token from headers
+    const token = req.headers.authorization;
+
+    if (!token) {
+      // check if there is token let him keep going
+      res.statusCode = 401;
+      res.send("You have no permissions!!");
+      return;
+    }
+
+    const decodedToken = jwt.decode(token); // do decoded for the token and get teacher if he exsit
+    const teacher = await teacherModel.findById(decodedToken.sub);
+
+    if (!teacher) {
+      // check if we have this teacher let him keep going
+      res.statusCode = 401;
+      res.send("You have no permissions");
+      return;
+    }
+
+    jwt.verify(token, teacher.salt);
+
     studentModel
       .deleteOne({ _id: req.params.id })
       .then((result) => res.json(result))
